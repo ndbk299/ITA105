@@ -1,0 +1,6 @@
+area,price,rooms,location,house_type,description,date
+50.0,2000000000.0,2,A,Townhouse,Nhà đẹp gần trung tâm,2021-01-15
+70.0,3000000000.0,3,B,Villa,"Biệt thự cao cấp, có sân vườn",2021-02-20
+65.0,,2,A,Apartment,Căn hộ giá tốt cho gia đình trẻ,2021-03-10
+,1500000000.0,1,C,Apartment,Nhà nhỏ phù hợp vợ chồng mới cưới,2021-02-01
+120.0,6000000000.0,4,B,,"Biệt thự rộng rãi, tiện nghi",2021-04-03
