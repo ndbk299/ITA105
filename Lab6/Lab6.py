@@ -173,6 +173,3 @@ if os.path.exists(path_b4):
     show_images(results, titles, 1, 4)
 
 print("\n--- HOÀN THÀNH LAB 6 ---")
-
-show_images()
-augment_pipeline()
