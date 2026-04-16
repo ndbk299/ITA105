@@ -131,3 +131,99 @@ print(tfidf_matrix.toarray())
 from sklearn.metrics.pairwise import cosine_similarity
 similarity_matrix = cosine_similarity(tfidf_matrix)
 print(similarity_matrix)
+
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, FunctionTransformer
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from xgboost import XGBRegressor
+from sklearn.metrics import mean_squared_error, r2_score
+import datetime
+
+# =========================
+# 1. Load dữ liệu
+# =========================
+data = data1.copy()
+
+# =========================
+# 2. Feature Engineering
+# =========================
+
+# Biến đổi thời gian
+data['transaction_date'] = pd.to_datetime(data['transaction_date'])
+data['year'] = data['transaction_date'].dt.year
+data['month'] = data['transaction_date'].dt.month
+data['quarter'] = data['transaction_date'].dt.quarter
+data['season'] = data['month'] % 12 // 3 + 1  # mùa
+
+# Feature từ text
+data['desc_word_count'] = data['description'].apply(lambda x: len(x.split()))
+data['luxury_flag'] = data['description'].str.contains("luxury", case=False).astype(int)
+data['cozy_flag'] = data['description'].str.contains("cozy", case=False).astype(int)
+
+# Target log-transform
+data['price_log'] = np.log1p(data['price'])
+
+# =========================
+# 3. Chuẩn bị dữ liệu
+# =========================
+X = data[['area','rooms','bathrooms','status','location','year','month','quarter','season',
+          'desc_word_count','luxury_flag','cozy_flag','description']]
+y = data['price_log']
+
+# Cột numerical, categorical, text
+num_features = ['area','rooms','bathrooms','year','month','quarter','season','desc_word_count','luxury_flag','cozy_flag']
+cat_features = ['status','location']
+text_features = 'description'
+
+# Transformers
+num_transformer = Pipeline(steps=[
+    ('scaler', StandardScaler())
+])
+
+cat_transformer = OneHotEncoder(handle_unknown='ignore')
+
+text_transformer = TfidfVectorizer(max_features=50)
+
+# ColumnTransformer
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', num_transformer, num_features),
+        ('cat', cat_transformer, cat_features),
+        ('text', text_transformer, text_features)
+    ]
+)
+
+# =========================
+# 4. Pipeline mô hình
+# =========================
+models = {
+    "LinearRegression": LinearRegression(),
+    "RandomForest": RandomForestRegressor(n_estimators=100, random_state=42),
+    "GradientBoosting": GradientBoostingRegressor(n_estimators=100, random_state=42),
+    "XGBoost": XGBRegressor(n_estimators=100, random_state=42)
+}
+
+results = {}
+
+for name, model in models.items():
+    pipe = Pipeline(steps=[('preprocessor', preprocessor),
+                           ('model', model)])
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+    pipe.fit(X_train, y_train)
+    y_pred = pipe.predict(X_test)
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+    r2 = r2_score(y_test, y_pred)
+    results[name] = {"RMSE": rmse, "R2": r2}
+
+# =========================
+# 5. Kết quả
+# =========================
+print("Kết quả mô hình:")
+for model, metrics in results.items():
+    print(f"{model}: RMSE={metrics['RMSE']:.2f}, R2={metrics['R2']:.2f}")
